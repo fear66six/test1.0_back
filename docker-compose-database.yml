@@ -1,0 +1,108 @@
+# ByrSki 数据库层部署配置 (zjy服务器)
+# 包含：MySQL, MongoDB, RabbitMQ, Redis持久化
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: byrski-mysql-primary
+    command: --default-time-zone='+08:00' --bind-address=0.0.0.0
+    environment:
+      - MYSQL_DATABASE=byrski_schema
+      - MYSQL_USER=wsb
+      - MYSQL_PASSWORD=wang13261910095
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3307:3306"  # 外部端口3307映射到容器内部3306端口
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d  # MySQL配置目录
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: byrski-mongodb-primary
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=byrski_admin
+      - MONGO_INITDB_ROOT_PASSWORD=byrski20241228
+      - MONGO_INITDB_DATABASE=byrski
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - ./mongodb/mongod.conf:/etc/mongod.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-network
+
+  redis-persistent:
+    image: redis:latest
+    container_name: byrski-redis-persistent
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_persistent_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - byrski-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: byrski-rabbitmq-primary
+    environment:
+      - RABBITMQ_DEFAULT_USER=yaphet
+      - RABBITMQ_DEFAULT_PASS=Yaphet677958
+      - RABBITMQ_NODE_NAME=rabbit@byrski-mq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-network
+
+volumes:
+  mysql_data:
+    driver: local
+  mongo_data:
+    driver: local
+  redis_persistent_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  byrski-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

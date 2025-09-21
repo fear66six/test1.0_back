@@ -1,0 +1,187 @@
+# ByrSki 应用层部署配置 (byrski服务器)
+# 包含：前端、后端三实例、Redis缓存
+version: '3.8'
+
+services:
+  # 生产实例 (8081端口)
+  app-production:
+    image: byrski:latest
+    container_name: byrski-backend-production
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      # 数据库连接到数据库服务器
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DATABASE_SERVER_IP}:3306/byrski_schema?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=wsb
+      - SPRING_DATASOURCE_PASSWORD=wang13261910095
+      # Redis缓存使用本地，持久化使用远程
+      - SPRING_DATA_REDIS_HOST=redis-cache
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=ByrSki2024
+      # MongoDB连接到数据库服务器
+      - SPRING_DATA_MONGODB_HOST=${DATABASE_SERVER_IP}
+      - SPRING_DATA_MONGODB_PORT=27017
+      - SPRING_DATA_MONGODB_DATABASE=byrski
+      - SPRING_DATA_MONGODB_USERNAME=byrski_admin
+      - SPRING_DATA_MONGODB_PASSWORD=byrski20241228
+      # RabbitMQ连接到数据库服务器
+      - SPRING_RABBITMQ_HOST=${DATABASE_SERVER_IP}
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=yaphet
+      - SPRING_RABBITMQ_PASSWORD=Yaphet677958
+      # JWT配置
+      - SPRING_SECURITY_JWT_KEY=byrski-official
+      - SPRING_SECURITY_JWT_TOKEN_EXPIRE_DAY=7
+      - SPRING_SECURITY_JWT_TRADE_EXPIRE_SECOND=20
+      # 微信配置
+      - WECHAT_APP_ID=wx535c7daf241afe7e
+      - WECHAT_APP_SECRET=8a5eb086d8d0e0e087189ed4d614141d
+      - WECHAT_MERCHANT_ID=1695831750
+      - WECHAT_MERCHANT_SERIAL_NUMBER=57E38808148898C00BAC940706D8C8746CECCD97
+      - WECHAT_API_V3_KEY=lI9Sq64iPQuxPP4k9eJNG7A3ut9JryYB
+      - WECHAT_URLS_AUTH_CODE=https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code
+      - WECHAT_URLS_PHONE_CODE=https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=%s
+      - WECHAT_URLS_CHECK_STUDENT=https://api.weixin.qq.com/intp/quickcheckstudentidentity?access_token=%s
+      - WECHAT_URLS_ACCESS_TOKEN=https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s
+    depends_on:
+      - redis-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-app-network
+
+  # 蓝色实例 (8080端口)
+  app-blue:
+    image: byrski:latest
+    container_name: byrski-backend-blue
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DATABASE_SERVER_IP}:3306/byrski_schema?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=wsb
+      - SPRING_DATASOURCE_PASSWORD=wang13261910095
+      - SPRING_DATA_REDIS_HOST=redis-cache
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=ByrSki2024
+      - SPRING_DATA_MONGODB_HOST=${DATABASE_SERVER_IP}
+      - SPRING_DATA_MONGODB_PORT=27017
+      - SPRING_DATA_MONGODB_DATABASE=byrski
+      - SPRING_DATA_MONGODB_USERNAME=byrski_admin
+      - SPRING_DATA_MONGODB_PASSWORD=byrski20241228
+      - SPRING_RABBITMQ_HOST=${DATABASE_SERVER_IP}
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=yaphet
+      - SPRING_RABBITMQ_PASSWORD=Yaphet677958
+      # JWT配置
+      - SPRING_SECURITY_JWT_KEY=byrski-official
+      - SPRING_SECURITY_JWT_TOKEN_EXPIRE_DAY=7
+      - SPRING_SECURITY_JWT_TRADE_EXPIRE_SECOND=20
+      # 微信配置
+      - WECHAT_APP_ID=wx535c7daf241afe7e
+      - WECHAT_APP_SECRET=8a5eb086d8d0e0e087189ed4d614141d
+      - WECHAT_MERCHANT_ID=1695831750
+      - WECHAT_MERCHANT_SERIAL_NUMBER=57E38808148898C00BAC940706D8C8746CECCD97
+      - WECHAT_API_V3_KEY=lI9Sq64iPQuxPP4k9eJNG7A3ut9JryYB
+      - WECHAT_URLS_AUTH_CODE=https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code
+      - WECHAT_URLS_PHONE_CODE=https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=%s
+      - WECHAT_URLS_CHECK_STUDENT=https://api.weixin.qq.com/intp/quickcheckstudentidentity?access_token=%s
+      - WECHAT_URLS_ACCESS_TOKEN=https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s
+    depends_on:
+      - redis-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-app-network
+
+  # 绿色实例 (8082端口)
+  app-green:
+    image: byrski:latest
+    container_name: byrski-backend-green
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DATABASE_SERVER_IP}:3306/byrski_schema?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      - SPRING_DATASOURCE_USERNAME=wsb
+      - SPRING_DATASOURCE_PASSWORD=wang13261910095
+      - SPRING_DATA_REDIS_HOST=redis-cache
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=ByrSki2024
+      - SPRING_DATA_MONGODB_HOST=${DATABASE_SERVER_IP}
+      - SPRING_DATA_MONGODB_PORT=27017
+      - SPRING_DATA_MONGODB_DATABASE=byrski
+      - SPRING_DATA_MONGODB_USERNAME=byrski_admin
+      - SPRING_DATA_MONGODB_PASSWORD=byrski20241228
+      - SPRING_RABBITMQ_HOST=${DATABASE_SERVER_IP}
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=yaphet
+      - SPRING_RABBITMQ_PASSWORD=Yaphet677958
+      # JWT配置
+      - SPRING_SECURITY_JWT_KEY=byrski-official
+      - SPRING_SECURITY_JWT_TOKEN_EXPIRE_DAY=7
+      - SPRING_SECURITY_JWT_TRADE_EXPIRE_SECOND=20
+      # 微信配置
+      - WECHAT_APP_ID=wx535c7daf241afe7e
+      - WECHAT_APP_SECRET=8a5eb086d8d0e0e087189ed4d614141d
+      - WECHAT_MERCHANT_ID=1695831750
+      - WECHAT_MERCHANT_SERIAL_NUMBER=57E38808148898C00BAC940706D8C8746CECCD97
+      - WECHAT_API_V3_KEY=lI9Sq64iPQuxPP4k9eJNG7A3ut9JryYB
+      - WECHAT_URLS_AUTH_CODE=https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code
+      - WECHAT_URLS_PHONE_CODE=https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=%s
+      - WECHAT_URLS_CHECK_STUDENT=https://api.weixin.qq.com/intp/quickcheckstudentidentity?access_token=%s
+      - WECHAT_URLS_ACCESS_TOKEN=https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s
+    depends_on:
+      - redis-cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - byrski-app-network
+
+  # 本地Redis缓存
+  redis-cache:
+    image: redis:latest
+    container_name: byrski-redis-cache
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_cache_data:/data
+    command: redis-server --requirepass ByrSki2024 --protected-mode yes --dir /data --dbfilename cache.rdb --save 900 1 --save 300 10 --save 60 10000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "ByrSki2024", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - byrski-app-network
+
+volumes:
+  redis_cache_data:
+    driver: local
+
+networks:
+  byrski-app-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
